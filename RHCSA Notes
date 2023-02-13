@@ -1,0 +1,192 @@
+RHCSA Notes
+===========
+
+
+1 - Understand and Use Essential Tools
+
+1.1 : Access a shell prompt and issue commands with correct syntax
+
+Connection modes:
+    local text mode
+    Local graphcal mode
+    remote text mode
+    graphical mode
+
+ssh aaron@192.168.0.17
+
+
+1.2 : Log in and switch users in multiuser targets
+-------------------------------------------
+
+Linux Security :
+    Access Controls
+    PAM
+    Network Security
+    SSH Hardening
+    SELinux
+    Many More
+
+Linux Accounts
+    User Accounts (/etc/passwd)
+    Group Accounts(/etc/group)
+
+Account Types
+    User Accounts
+    Superuser Account (UID=0)
+    System Accounts (UID<100 OR between 500 - 1000)
+    Service Accounts
+
+$ id
+This command gives information about the user
+
+$ who
+To see the list of users currently logged in 
+
+$ last
+Record of all logged in users, and date of reboots
+
+
+Switching Users
+
+$ su - 
+To switch user
+
+SUDO
+/etc/sudoers
+Defines the default configuration and policies applied by the sudo command. This file can only be edited using the visudo command
+
+Only users listed in the /etc/sudoers file can use the sudo command for privilege escalation.
+
+
+Sudoer file structure:
+1 User or Group - bob %sudo(group)
+2 Hosts         - localhost, ALL(default)
+3 User          - ALL(default)
+4 commands      - /bin/ls, ALL(unrestricted)
+
+1.3 : Read, and use system documentation
+-----------------------------------------
+
+--help
+
+$ ls --help
+
+All commands have a manual, that can be accessed using the man command.
+
+$ man man
+    1 - Executatble programs or shell commands
+    2 - System calls
+    3 - Library calls
+    4 - Special files
+    5 - File formats and conventions
+    6 - Games
+    7 - Miscelleneous
+    8 - SYstem administration command
+    9 - Kernel routines
+
+-- $ apropos
+    Lets you search through man pages
+
+$ apropose director
+All man pages which have director in their man pages
+
+NB : sudo mandb
+Launch this command on new machines to initialize the apropos db
+
+$ apropos -s 1,8 director
+To filter out man page sections
+
+
+1.4 : Locate, read and user system documentation
+-----------------------------------
+
+ - info bash
+ Documentation about shell commands, in a pager formats.
+ Formated in a hypertext format.
+
+
+ - /user/share/doc
+ Documentation directory in html format
+
+
+
+1.5 : Create, delete, copy and move files and directories
+----------------------------------------------
+
+$ ls
+
+$ ls -l
+Long listing format
+
+$ ls -lh
+File sizes in human readable format
+
+
+Filesystem Tree
+
+/
+|
+/home
+ | /home/aaron
+          | Documents
+              | Invoice.pdf
+ | /home/jane
+/var
+ | /var/log
+
+
+$ pwd
+Print Working Directory
+
+$ cd
+change directory
+
+$ cd /
+Go to root directory
+
+$ cd -
+Go to previous directory
+
+$ cd
+Takes you back to your home directory 
+
+1.6 : Create and manage hard links
+----------------------------------
+
+$ stat
+Gives you detailed information about some files
+
+File -> Inodes -> Blocks on the data drive
+
+Links : It's the number of hard links to the file.
+
+$ ln path_to_target_file path_to_link_file
+
+$ ln /home/aaron/Pictures/family_dog.jpg /home/jane/Pictures/family_dog.jpg
+
+
+Hard links to a file can be deleted, so far as the file has one hard link regerencing it, else it would be erased
+
+You can only hard links to files not to the directories
+
+
+1.7 : Create and manage soft links
+----------------------------------
+
+$ ln -s path_to_target_file path_to_link_file
+
+$ s-ls -s /home/aaron/Pictures/family_do.jpg family_dog.jpg
+
+$ ln -l
+
+$ readlink family_dog_shortcut.jpg
+Gives you detailed information of where the link file points to. Changing the softlink name, breaks the kingk
+
+
+
+
+
+
+
+
+
