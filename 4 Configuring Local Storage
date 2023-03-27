@@ -1,0 +1,323 @@
+Configuring Local Storage
+-------------------------
+
+4.1 List, create, delete, and modify physical storage partitions
+
+To see partitions
+$ lsblk
+
+To list partitions on a device
+$ sudo fdisk --list /dev/sda
+
+$ sudo cfdisk /dev/sdb
+
+4.2 Configure and manage swap space
+
+to view swap
+$ swapon --show
+
+
+to add new swap
+$ lsblk
+
+$ sudo mkswap /dev/vdb3
+
+$ sudo swapon --versbose /dev/vdb3
+
+Increase swap
+
+
+$ sudo dd if=/dev/zero of=/swapfile bs=1M count=1024 oflag=append conv=notrunc
+
+$ sudo swapoff /swapfile
+
+$ sudo chmod 600 /swap
+
+$ sudo mkswap /swapfile
+
+$ sudo swapon /swapfile
+
+Formatting swap
+$ sudo mkswap /swap
+
+$ sudo swapon --verbose /swap
+
+$ swapon --show
+
+4.3 : Manage and configure LVM storage
+
+$ sudo dnf install lvm2
+
+3 new disk of 5gb size
+
+pv - physical volume
+vg - volume group
+lv - logical volume
+pe - physical extent
+
+Physical volumes are real storage devices that lvm works with or partitions
+
+$ sudo lvmdiskscan
+
+To convert them to physical volume to lvm
+$ sudo pvcreate /dev/sdc /dev/sdd
+
+To see what current physical volumes are attached to the volume
+$ sudo pvs
+
+Add the physical volumes to a volume group
+$ sudo vgcreate my_volume /dev/sdc /dev/sdd
+
+To expand our volume group
+Create the physical volume to lvm
+$ sudo pvcreate /dev/sde
+
+Do the extend
+$ sudo vgextend my_volume /dev/sde
+
+Take a look with vgs
+$ sudo vgs
+
+To remove a physical volume from a volume group
+$ sudo vgreduce my_volume /dev/sde
+
+To remove from the lvm
+$ sudo pvremove /dev/sde
+
+create a logical volume(partition)
+$ sudo lvcreate --size 2G --name partition1 my_volume
+
+To take a new look to the volume groups
+$ sudo vgs
+
+To create a second volume group
+$ sudo lvcreate --size 6G --name partition2 my_volume
+
+To look at lvs
+$ lvs
+
+How to group the first lv
+To tell lvm to expand the first lv to all the extends available
+$ sudo lvresize --extents 100%VG my_volume/partition1
+
+to shrink it
+$ sudo lvresize --size 2G my_volume/partition1
+
+Details about the pvs
+$ sudo lvdisplay
+
+To create a xfs partition with default options
+$ sudo mkfs.xfs /dev/my_volume/partition1
+
+To resize a logical volume with a filesystem on it
+$ sudo lvresize --resizefs --size 3G my_volume/partition1
+
+the --resizefs option is necessary because lvm will resize the lv and the filesystem
+
+
+4.4 Create and configure encrypted storage
+
+Linux Unified Key Setup - LUKS
+
+$ sudo cryptsetup --verify-passphrase open --type plain /dev/vde mysecuredisk
+--verify-passphrase : it ask to cryptsetup to ask for the password twice
+--type plain
+mysecuredisk : name of the device
+
+Create a filesystem on it 
+$ sudo mkfs.xfs /dev/mapper/mysecuredisk
+
+Now we mount it
+$ sudo mount /dev/mapper/mysecuredisk /mnt
+
+Now we can unmount it 
+$ sudo unmount /mnt
+
+$ sudo cryptsetup close mysecuredisk
+
+
+L.U.K.S encryption
+
+First we need to format the disk/partition with luks
+$ sudo cryptsetup luksformat /dev/vde
+
+to change the encryption key
+$ sudo cryptsetup luksChangeKey /dev/vde
+
+$ sudo cryptsetup open /dev/vde mysecuredisk
+
+To envrypt some part of the disk
+$ sudo cryptsetup luksformat /dev/vde2
+
+$ sudo cryptsetup open /dev/vde2 mysecuredisk
+ 
+$ sudo cryptsetup --verify-passphrase open --type plain dev/vde2 
+
+Practice :
+$ sudo cryptsetup open --type plain /dev/vde secretdisk
+or
+$ sudo cryptsetup --verify-passphrase open --type plain /dev/vde secretdisk
+
+$ sudo mkfs.xfs /dev/mapper/mysecuredisk
+
+To close an unencrypted mapped device
+$ sudo cryptsetup close secretdisk
+
+Format encrypted partition
+$ sudo cryptsetup luksFormat /dev/vde
+
+Now /dev/vde is formatted to be used with LUKS encryption. Use cryptsetup to open /dev/vde with LUKS-type encryption (password is S3curepass). /dev/vde should be mapped to an unencrypted device called secretdisk.
+$ sudo cryptsetup open /dev/vde secretdisk
+
+
+4.5 Create and manage RAID devices
+
+Redundant Array of Independent Disk
+Raid 0 : Stripped Array 1+1+1 =3
+Raid 1 ; Mirrored Array 1+1+1 =1
+Raid 5 : Mininum 3 disk, keeps parity on the disks 1+1+1=2, we can only loose one fdisk
+Raid 6 : Minimum 4 disks required, we can tolerated 2 disks
+Raid 1+0 : (1+1) x (1+1) = 2
+
+To tests RAID, we will need to wipeout LVM
+$ sudo vgremove --force my_volume
+$ sudo pvremove /dev/vdc /dev/vdd /dev/vde
+
+User mdadm
+$ sudo mdadm --create /dev/md0 --local=0 --raid-devices=3 /dev/vdc /dev/vdd /dev/vde
+
+Create the filesystem
+$ sudo mkfs.ext4 /dev/md0
+
+To stop or deactive an array
+$ sudo mdadm --stop /dev/md0
+
+To avoid superblock reconstitution at startup
+$ sudo mdadm --zero-superblock /dev/vdc /dev/vdd /dev/vde
+
+Add spare disk to an array
+$ sudo mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/vdc /dev/vdd --spare-devices=1 /dev/vde
+
+Stop the array
+$ sudp mdadm --stop /dev/md0
+
+Delete the superblock
+$ sudo mdadm --zero-superblock /dev/vdc /dev/vdd /dev/vde
+
+
+Built a mirror
+$ sudo mdadm --create /dev/mdo --level=1 --raid-devices=2 /dev/vdc /dev/vdd
+
+Add disk to array
+$ sudo mdadm --manage /dev/md0 --add /dev/vde
+
+Remove disk from array
+$ sudo mdadm --manage /dev/md0 --remove /dev/vde
+
+View the status
+$ cat /proc/mdstat 
+
+
+4.6 Create, manage and diagnose advanced file system permissions
+
+Access Control Lists
+$ echo "This is the file content" > examplefile
+$ sudo chown adm:ftp examplefile
+
+To give permissions to a user who is not owner nor in group of a file, we use acl
+$ sudo setfacl --modify user:aaron:rw examplefile
+
+To notice files with an acl
+$ ls -l
+-rw-rw-r--+   # there is a + mark
+
+To see the acl
+$ getfacl examplefile
+
+To limit maximum permissions during an acl
+$ sudo setfacl --modify mask:r examplefile
+
+Groups
+$ sudo setfacl --modify group:wheel:rw examplefile
+
+To deny all permissions to a specific user
+$ sudo setfacl --modify user:aaron:--- examplefile
+
+Remove an acl for a specific user or a specific group
+$ sudo setfacl --remove user:aaron examplefile
+
+For groups it is the same
+$ sudo setfacl --remove group:wheel examplefile
+
+Attach an acl a recursively
+$ mkdir dir1
+$ setfacl --recursive -m user:aaron:rwx dir1
+
+$ setfacl --recursive --remove user:aaron:rwx dir1
+
+
+File and directoy append attribute
+$ echo "This is old content"  > newfile
+$ sudo chattr +a newfile
+
+To remove the attribute form a file
+$ sudo chattr -a newfile
+
+Immutable -i, file can not be changed in anyway
+$ sudo chattr +i newfile
+
+To remove
+$ sudo chattr -i newfile
+
+To check attributes on a file and/or directory
+$ lsattr newfile
+
+$ man chattr
+
+4.7 Setup user and group disk quotas for filesystems
+
+install
+$ sudo dnf install qutoa
+
+CHoose the filesystems where quotas are to be enabled
+$ sudo vim /etc/fstab
+
+rewrite the lines
+/dev/vd1 /mybackups	xfs	ro, noexec	0 2
+/dev/vd1 /mybackups	xfs defaults,usrquota,grpquota ro, noexec	0 2
+
+Save and reboot
+This is enough for an XFS filesystem
+For ext4, few steps are necessary
+
+$ sudo quotacheck --create-files --user --group /dev/vdb2
+
+Turn on the limits
+$ sudo quotaon /mnt/
+
+To create a 100M file
+$ fallocate --length 100M /mybackups/aaron/100Mfile
+
+To view user quotas
+$ sudo  quota --user aaron 
+
+To edit quotas for the user aaron
+$ sudo edquota --user aaron
+1block = 1kb of data
+
+To give users a longer grace period
+$ sudo quota --edit-period 
+
+For groups, rather use the --group flag instead of --user flag
+$ sudo edquota --group adm
+
+To verify quota used by groups
+$ sudo quota --group adm
+
+
+Practice :
+
+Question : Edit disk quotas for the user called john. Set a soft limit of 100 megabytes and hard limit of 500 megabytes on /mnt partition.
+$ sudo xfs_quota -x -c 'limit bsoft=100m bhard=500m john' /mnt/
+
+

@@ -1,0 +1,249 @@
+# 7.1 Configure Networking and hostname resolution statically of dynamically
+
+
+To have information about your network adapters
+```
+$ ip link show
+$ ip l
+```
+To have information about your ip adresses
+```
+$ ip addresses show
+$ ip a
+```
+View the routing tables
+```
+$ ip route show
+$ ip r
+```
+View DNS resolvers
+```
+$ cat /etc/resolv.conf
+```
+
+Network configuration settings are defined in:
+```
+$ ls /etc/sysconfig/network-scripts/
+```
+
+Network manager tools
+```
+$ sudo nmtui
+$ sudo nmcli
+```
+To force network manager to immediately apply changes, rather than reboot
+```
+$ sudo nmcli device reapply enp0s3
+
+Static hostname resolution
+$ sudo vim /etc/hosts
+$ sudo hostnamectl
+```
+Update the transient hostname
+$ sudo hostnamectl set-hostname dev-host01
+
+# 7.2 Configure network services to start automatically at boot
+```
+$ sudo systemctl status NetworkManager.service
+
+If not present, you can install it
+
+$ sudo dnf install NetworkManager
+
+$ sudo systemctl start NetworkManager.service
+
+$ sudo systemctl enable NetworkManager.service
+```
+To enable a connection to auto start at boot
+List the connections, not the <name>
+$ nmcli connection show
+
+$ sudo nmcli connection modify <name> autoconnect yes
+
+
+# 7.3 Start, Stop and Check Network Services
+
+Two utilities : ss and netstat
+
+To see programs ready to accept network connections
+```
+$ sudo ss -tunlp
+
+$ sudo lsof -p <pid>
+```
+
+Netstat uses almost the same arguments as ss
+
+
+
+# 7.3 Implement packet filtering
+
+FirewallD manages network interfaces in zones
+
+Default zone is public, any incoming connection is blocked
+
+Check default zone
+```
+$ sudo firewall-cmd --get-default-zone
+```
+
+to change the default zone
+```
+$ sudo firewall-cmd --set-default-zone=public
+```
+
+To see the current firewall rules
+```
+$ sudo firewall-cmd --list-all
+```
+To have more information about a service
+$ sudo firewall-cmd --info-service=cockpit
+
+Allow traffic to a service
+```
+$ sudo firewall-cmd --add-service=http
+or
+$ sudo firewall-cmd --add-port=80/tcp
+```
+To remove a service from a set of accepted connections
+```
+$ sudo firewall-cmd --remove-service=http
+or
+$ sudo firewall-cmd --remove-port=80/tcp
+```
+
+In a public zone, the main policy is to deny incomming connections to all ports
+To setup a trusted zone
+```
+$ sudo firewall-cmd --add-source=10.11.12.0/24 --zone=trusted
+```
+To get a list of zones
+```
+$ sudo firewall-cmd --get-active-zones
+```
+To remove a filter based on adresses
+```
+$ sudo firewall-cmd --remove-source=10.11.12.0/24 --zone=trusted
+```
+To allow incoming trafic on specific port
+```
+$ sudo firewall-cmd --add-port=12345/tcp
+```
+
+Take a look at all current rules
+```
+$ sudo firewall-cmd --list-all
+```
+To make rules permanent/persistent
+```
+$ sudo firewall-cmd --runtime-to-permanent
+or
+$ sudo firewall-cmd --add-port=12345/tcp --permanent
+```
+
+# 7.4 : Statically route IP traffic
+
+Network 1 : 10.0.0.0
+CompA 	  : 10.0.0.1
+
+Network 2 : 192.168.0.0
+CompB	  : 192.168.0.1
+
+RouterC : 10.0.0.100, 192.168.0.100
+
+> On CompA, set static route to Network B
+```
+$ sudo ip route add 192.168.0.0/24 via 10.0.0.100 dev enp0s3
+```
+
+> To delete a route
+```
+$ sudo ip route del 192.168.0.0/24
+```
+> Add default route(Gateway)
+```
+$ sudo ip route add default via 10.0.0.100
+```
+To delete a default route
+```
+$ sudo ip route del default via 10.0.0.100
+```
+
+To make changes permanent
+Look at network manager
+```
+$ nmcli connection show
+
+$ sudo nmcli connection modify enp0s3 +ipv6.routes "192.168.0.0/24 10.0.0.100"
+
+$ sudo nmcli device reapply enp0s3
+```
+Confirm results
+```
+$ ip route show
+```
+
+>To remove these routes
+```
+$ sudo nmcli connection modify enp0s3 -ipv6.routes "192.168.0.0/24 10.0.0.100"
+
+$ sudo nmcli device reapply enp0s3
+```
+
+If you forget these commands, you can user __nmtui__
+
+
+
+
+# 7.5 Synchronizing time using network clients
+
+The tool used by CentOS is chronyd
+To make sure it's currently running
+```
+$ systemctl status chronyd.service
+```
+
+You can also run __timedatectl__
+```
+$ timedatectl
+```
+
+To install/enable chronyd
+1. Make sure the time-zone is setup
+```
+$ sudo timedatectl set-timezone America/New_York
+```
+	> To see all available time-zones
+	  ```
+	  $ timedatectl list-timezones
+	  ```
+
+2. Install the chrony daemon
+```
+$ sudo dnf install chrony
+```
+
+3. Start it and enable it
+```
+$ sudo systemctl start chronyd.service
+
+$ sudo systemctl enable chronyd.service
+```
+
+4. Check now the time and date control
+```
+timedatectl
+```
+
+5. If NTP synchronization is not enabled, enable it
+```
+$ sudo systemctl set-ntp true
+```
+
+
+
+
+
+
+
+

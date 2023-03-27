@@ -1,0 +1,131 @@
+10.1 Manage and configure containers
+
+podman is a project in replacement ot docker
+
+$ sudo dnf install docker
+
+it installs podman-docker(fake docker )
+
+You can edit registries.conf file to make podman point to docker registres
+$ vim /etc/containers/registries.conf
+
+comment the unqualified-search-registries, create a new line with the new
+unqualified-search-registries = ["docker.io"]
+
+To emulated docker cli using podman :
+$ sudo touch /etc/containers/nodocker
+
+To search
+$ docker search nginx
+
+To pull an image
+$ docker pull docker.io/library/nginx
+$ docker pull nginx:1.20.2
+
+To view images on a system
+$ docker images
+
+To delete an image, use the image id or image name 
+$ docker rmi nginx:1.20.2
+
+To run an image to a container
+$ docker run nginx:1.20.2 
+
+docker run, creates a new container, docker start, starts an old container that was stopped
+
+To run a docker container in detached mode
+$ docker run -d nginx
+
+To explore running containers
+$ docker ps
+or
+$ docker container list
+
+To stop a container, you can user the name or id
+$ docker stop <container_id>
+
+To view all(active and stoppped) containers
+$ docker ps --all
+or
+$ docker ps -a
+
+To delete a container (must be stopped first)
+$ docker rm <container_name>
+
+NB: You can not delete an image that is used by container
+You can force, it will stop and delete the container
+$ docker rmi -force nginx
+
+You can force and delete a container
+$ docker rm --force <container-name>
+
+You can name a container 
+$ docker run -d -p 8080:80 --name mywebserver nginx
+
+port-mapping : 8080 on host : 80 on container
+
+
+
+10.2  Perform container management using commands such as podman and skopeo
+
+Installing skopeo
+$ sudo yum install skopeo
+
+
+Inspecting Repositories
+$ skopeo inspect docker://registry.fedoraproject.org/fedora:latest
+
+Inspect containers
+$ skopeo inspect --config docker://registry.fedoraproject.org/fedora:latest | jq
+
+Copying Images
+$ skopeo copy docker://quay.io/buildah/stable docker://registry.kodekloud.com/buildah
+
+$ skopeo copy oci:busybox_ocilayout:latest dir:myemptydirectory
+
+Deleting images
+$ skopeo delete docker://localhost:5000/imagename:latest
+
+syncing Registries
+$ sudo skopeo sync --src docker --dest dir registry.fedoraproject.org/fedora:latest /home/bob/fedora
+
+
+
+10.3 Configure a container to start automatically as a systemd service and attach persistent storage
+
+
+To swith module streams
+$ sudo yum module reset container-tools
+
+$ sudo yum module install container-tools:3.0
+
+
+Create a directory for service definition
+$ mkdir -p ~/.config/systemd/user
+
+Create a directory for persistent storage
+$ mkdir ~/container_storage
+
+Populate the storage directory with some content
+$ echo "KodeKloud" > ~/container_storage/kodekloud.html
+
+Create a container to generate unit files
+$ podman run -d --name container_service -p 1025:8080 -v ~/container_storage:/var/www/html:Z registry.access.redhat.com+rhscl/httpd-24-rhel7
+
+Test container
+$ curl 127.0.0.1:1025/kodekloud.html
+
+Create the systemd unit file
+$ cd ~/.config/systemd/user
+
+$ podman generate systemd --name container_service --files --new 
+This command will generate a service file container-(name).service
+
+Kill the currently running container
+$ podman kill container_service
+
+$ podman rm container_service
+
+
+
+

@@ -1,0 +1,96 @@
+# 9.1 Configure key-based authentication for SSH
+
+Configuration file server : /etc/ssh/sshd_config
+
+Configuration file client : /etc/ssh/ssh_config
+
+
+# 9.2 List and Identify SELinux file and process contexts
+
+SElinux Context Label
+$ ls -Z
+
+user        :role    :type       :level
+unconfined_u:object_r:user_home_t:s0
+
+1. Only certain users can enter certain roles and certain types
+2. It lets authorized users and processes to do their job, by granting permissions they need
+3. Authorized users and processes are allowed to take a limited set of actions
+4. Everything else is denied
+
+
+To see all processes
+$ ps axZ
+
+To see the security context that is assigned to our user
+$ id -Z
+
+To see the user mappings
+$ sudo semanage login -l
+
+To see roles users can have on the system
+$ sudo semanage user -l
+
+SELinux Modes
+$ getenforce
+
+To modify the SELinux context of a file
+$ sudo chcon -t httpd_sys_content_t /var/index.html
+
+# 9.3 Change kernel runtime parameters, persistent and non-persistent
+
+Settings of how the kernel does it job internally
+
+To see all kernel runtime parameters
+
+$ sudo sysctl -a 
+
+To update a kernel setting, non persistent change
+
+$ sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+
+To check the value of a setting 
+$ sudo sysctl net.ipv6.conf.default.disable_ipv6
+
+To make a persistent change
+
+/etc/sysctl.d/*.conf*
+
+Create a file to configure system swappiness
+$ sudo vim /etc/sysctl.d/swap-less.conf
+vm.swappinees=29
+
+To make linux immediatedly apply the changes
+$ sudo sysctl -p /etc/sysctl.d/swap-less.conf
+
+
+# 9.4 Restore default file contexts
+
+Using boolean values to modify SELinux Boot time
+
+At boot press <e>
+end on line : linux ($root)vmlinuz ... 
+	enforcing=0 
+	selinux=0
+	autorelabel=1 - create /.autorelabel file
+the, Ctrl+x
+
+
+Diagnoze and analyze selinux policy violation
+
+1. Changing the default port for the httpd server
+	use journalctl -xe
+
+2. Change file locations
+	
+	$ sudo semanage -a -t httpd_sys_content_t "/kodekloud(/.*)?"
+
+	$ sudo restorecon -R /kodekloud/
+
+semodule -i my-httpd.pp
+semanage fcontext -a -t httpd_sys_content_t '/kodekloud/kodekloud.html'
+
+
+
+
+

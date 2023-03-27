@@ -1,0 +1,238 @@
+Create and Configure File Systems
+-----------------------------------
+
+5.1 : Create and Configure File Systems
+
+By default CentOS uses xfs file system
+$ sudo mkfs.xfs /dev/sdb1 
+
+To create a ext4
+$ sudo mkfs.ext4 /dev/sdb1
+
+You can add labels
+$ sudo mkfs.xfs -L "BackupVolume" /dev/sdb1
+
+Changing inode size
+$ sudo mkfs.xfs -i size=512 /dev/sdb1
+
+Combine Options
+$ sudo mkfs.xfs -i size=512 -L "BackupVolume" /dev/sdb1
+
+To view xfs utilities
+$ xfs <tab><tab>
+
+To view labels
+$ sudo xfs_admin -l /dev/sdb1
+
+To modify the label
+$ sudo xfs_admin -L "FirstFS" /dev/sdb1
+
+Using ext4 File system
+$ sudo mkfs.ext4 -l "BackupVolume" -N 500000 /dev/sdb2
+
+To modify ext file systems
+$ sudo tune2fs -l /dev/sdb2
+
+To change a filesystem property
+$ sudo tune2fs -L "SecondFS" /dev/sdb2
+
+
+
+5.2 : Create, mount, unmount and use vfat file systems
+
+vfat - Virtual File Allocation Table
+
+$ sudo fdisk /dev/vdb - t for type, b for W95 FAT32
+
+$ sudo mkfs.vfat /dev/vdb1 - up to 2GB in size
+
+For partitions larger than 2GB
+$ sudo mkfs.vfat -F 32 /dev/vdb1
+
+Mounting and unmounting vfat filesystems
+$ sudo mkdir /myvfat
+
+$ sudo mount /dev/vdb1 /myvfat
+
+To mount at boot time, modify /etc/fstab
+vi /etc/fstab
+/dev/vdb1 /myvfat vfat defaults 0 0
+
+To unmount
+$ sudo umount /myvfat
+
+
+
+
+5.3 : Configure systems to mount file systems at or during boot
+
+Empty /mnt folder
+
+$ sudo mount /dev/vbd1/ /mnt/
+
+To unmount, we use the umount
+$ sudo umount /mnt
+
+Explaining /etc/fstab
+
+/dev/mapper/cs-root	/		xfs   defaults	0 0
+
+defaults - default mounting options
+0  		 - backup is disabled using dump (0,1)
+0  		 - Error scanning (0,1,2)
+
+reload service configurations after editing the fstab
+$ sudo systemctl daemon-reload
+
+
+Mounting filesystems during boot time
+Let us edit /etc/fstab
+
+/dev/mapper/cs-swap	none		swap   defaults	0 0
+/dev/vdb3	none		swap   defaults	0 0
+
+To check the uuid of a block device, use the blkid command
+$ sudo blkid /dev/vdb1
+
+
+/dev/vdc	/test		ext4   defaults	0 2
+379e38d5-a87d-44dc-b10a-fbbe4ac8d49c none swap defaults 0 0
+
+
+
+5.4 : Configure disk compression
+
+Virtual Data Optimizer (VDO)
+
+Zero-block filtering, Deduplication, compression
+
+To install
+$ sudo yum install vdo
+
+You can make it run at boot
+$ sudo systemctl enable --now vdo.service
+
+Check status
+$ sudo systemctl status vdo.service
+
+create a vdo device
+$ sudo vdo create --name=vdo_storage --device=/dev/vdb --vdoLogicalSize=10G
+
+To view informations
+$ sudo vdostats --human-readable
+
+To create a filesystem on a vdo device
+$ sudo mkfs.xfs -K /dev/mapper/vdo_storage
+
+To make sure all device nodes are created
+$ sudo udevadm settle 
+
+Relaunch the check
+$ sudo vdostats --human-readable
+
+
+Mounting the vdo device via fstab
+/dev/mapper/vdo_Storage /mnt/myvdo xfs _netdev,x-systemd.device-timeout=0,x-systemd.requires=vdo.service 0 0
+
+Mount the device
+$ sudo mount -a
+
+Saving Space With VDO
+
+Create a 50MB file
+$ head -c 50MB /dev/urandom > mydata.txt
+
+Copy that files ten times
+$ mkdir /mnt/myvdo/dir{1..10}
+
+$ for i in 'seq 1 10'; do sudo cp /home/aaron/mydata.txt /mnt/myvdo/dir$i; done;
+
+
+on rhel 9, VDO implementation is done in LVM
+To create a new VDO volume, you treat it like a lvm volume and give rights
+
+$ sudo pvcreate /dev/vdb
+
+$ sudo vgcreate vdo_volume /dev/sdb
+
+$ sudo lvcreate --type vdo -n vdo_storate -L 100%FREE -V 10G /vdo_volume/vdo_pool1
+
+Now we format the disk
+$ sudo mkfis.xfs -K /dev/vdo_volume/vdo_Storage
+
+to use ext4 filesystem
+$ sudo mkfs.ext4 -E nodiscard /dev/vdo_volume/vdo_storage
+
+
+Now we can mount them
+
+$ sudo mkdir /mnt/myado
+
+$ sudo vi /etsfstab
+
+You can view further by checking
+
+$ sudo lvmvdo 
+
+
+5.6 : Manage layered storage
+
+Stratis 
+
+install
+$ sudo yum install stratisd stratis-cli
+
+Enable at boot
+$ sudo systemctl enable --now stratisd.service
+
+
+Creating a Stratis Pool
+You need a block device that is not mounted or in use
+$ sudo stratis pool create my-pool /dev/vdc /dev/vdd
+
+
+View the pool status
+$ sudo stratis pool list
+
+View stratis block devices
+$ sudo stratis blockdev
+
+Create a Stratis FileSystem
+$ sudo stratis fs create my-pool myfs1
+
+View information about the fs
+$ sudo stratis fs
+
+Mounting a Stratis FileSystem
+$ sudo mkdir /mnt/mystratis
+$ sudo vi /etc/fstab
+
+/dev/stratis/my-pool/myfs1 /mnt/mystratis xfs x-systemd.requires=stratisd.service 0 0
+
+$ sudo mount -a
+
+
+Addidng Storage Devices to the stratis pool
+$ sudo stratis pool add-data my-pool /dev/vdd
+
+$ sudo stratis pool
+
+
+Filesystem Snapshots With Stratis
+$ sudo stratis fs snapshot my-pool myfs1 myfs1-snapshot
+
+$ sudo stratis fs
+
+In case we accidentally delete something
+We can use the snapshot to recover the data
+First we rename the current stratis FileSystem
+$ sudo stratis fs rename my-pool myfs1 myfs1-old
+
+$ sudo stratis fs rename my-pool myfs1-snapshot myfs1
+
+Then, unmount and remount for changes to be effective
+$ sudo umount /mnt/mystratis
+$ sudo mount /mnt/mystratis
+
+$ sudo stratis fs
+

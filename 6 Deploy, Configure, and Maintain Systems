@@ -1,0 +1,274 @@
+6.1 : Schedule tasks to run at a set date and time
+
+cron - 
+anacron - smallest units for repetition is the day, can recover a job that was not run due to system off
+at - tasks that should only run once
+
+
+$ cat /etc/crontab
+To view system wide cron definition
+
+35 6 * * * root /bin/somme_command --some_options
+
+35 - minutes(0 - 59)
+6  - hour (0 - 23)
+*  - day of the month (1 - 31)
+*  - month (1-12)
+*  - day week (0 - 6) (Sunday=0 or 7)
+
+Special caracters
+
+* = match all possible values (i.e, every hours)
+, = match multiple values (i.e, 15,45)
+- = range of values (i.e., 2 - 4)
+/ = specifies steps (i.e., */4)
+
+cron job will always like to use the full path to the command, use which command to view path to a command
+
+Cronjobs can be set using special directories, what ever cron finds in these directories is going to be run
+
+daily = /etc/cron.daily/
+hourly = /etc/cron.hourly/
+monthly = /etc/cron.monthly/
+weekly = /etc/cron.weekly
+
+NB: Shell scripts should have no extension when required to be run by cron
+
+$ touch shellscript
+
+$ sudo cp shellscript /etc/cron.hourly/
+
+$ sudo chmod +rx /etc/cron.hourly/shellscript
+
+To remove the job
+
+$ sudo rm /etc/cron.hourly/shellscript
+
+
+ANACON
+
+No care about the time about when the job is going to be run. DAILY, MONTHLY
+
+To schedule jobs with anacron
+$ sudo vim /etc/anacrontab
+
+#period in days		delai in minutes	job-identifier	command
+
+3  	10		test_job		/usr/bin/touch 	/root/anacron_created_this
+
+3 - job is run every 3 days
+10 - 10 minutes dalay
+test_job - job identifier necessary for loggin
+/usr/bin/touch /root/anacron_created_this - command
+
+To verify if our anacron syntax is correct
+$ anacron -T
+
+
+
+AT
+
+Specific job launch
+$ at 15:00
+at> /usr/bin/touch file_created_by_at
+
+Ctrl + d - to save the job
+
+Run at specific date
+$ at 'August 20 2022'
+at>
+
+Run at specific data and time
+$ at '2:30 August 20 2022'
+at>
+
+Use of relative dates and time
+$ at 'now + 30 minutes'
+
+$ at 'now + 3 days'
+
+$ at 'now + 3 weeks'
+
+$ at 'now + 3 months'
+
+To see schedules jobs, will output job identifier
+$ atq
+
+To find what the job identifier does
+$ at -c <id>
+
+To remove a scheduled job
+$ atrm <id>
+
+
+6.2 : Verify Completion of Scheduled Jobs
+
+cron, anacon and at events are all logged
+
+/var/log/cron
+
+The MAILTO directive found in /etc/crontab can be edited
+$ vim /etc/anacrontab
+
+To force anacron to run scheduled job at a moment
+$ sudo anacron -n 
+$ sudo anacron -n -f
+
+
+
+6.3 : Manage Startup Process and Services
+
+You can view a service unit:
+$ systemctl cat sshd.service
+
+To edit service file
+$ sudo systemctl edit --full sshd.service
+
+To revert to factory default settings
+$ sudo systemctl revert sshd.service
+
+To see the status of a service
+$ sudo systemctl status sshd.service
+
+
+To restart a service
+$ sudo systemctl restart sshd.service
+
+To reload a service configurations
+$ sudo systemctl reload sshd.service
+
+To gracefully restart a service
+$ sudo systemctl reload-or-restart sshd.service
+
+To disabled sshd.service
+$ sudo systemctl disable sshd.service
+
+$ sudo systemctl is-enabled sshd.service
+
+To make it automatically start at boot
+$ sudo systemctl enable sshd.service
+
+NB: Make sure you enable the sshd.service to be able to login at next reboot
+
+To do both enable and start a service
+$ sudo systemctl enable --now sshd.service
+
+The disable command also supports teh --now option
+$ sudo systemctl disable --now sshd.service
+
+
+Some services can automatically startup other services
+You can mask a service is you do not want it to be started by other services
+$ sudo systemctl mask atd.service
+
+NB: Masked services can not be enabled or started
+
+To unmask a service
+$ sudo systemctl unmask atd.service
+
+To list all service units
+$ sudo systemctl list-units --type service --all
+
+
+
+
+
+6.3 : Install and update software packages from RHN or local file system
+
+yum and dnf are interchangeable
+
+Subscription manager
+$ sudo subscription-manager register --username your-redhat-username --password your-redhat-password
+
+To attach machine to Subscription
+$ sudo subscription-manager attach --auto
+
+
+
++ List default repositories
+$ sudo yum repolist
+
+To get the url of the repositories
+$ sudo yum repolist -v
+
+To view all(optional) repositories
+$ sudo yum repolist --all
+
+To enable one of the optional repositories
+$ sudo subscription-manager repos --enable <repo-id>
+
+$ sudo subscription-manager repos --disable <repo-id>
+
+This can be done with the yum config manager
+$ sudo yum-config-manager --enable <repo-id>
+
+$ sudo yum-config-manager --disable <repo-id>
+
+To use repositories on local network
+Install yum utils
+$ sudo yum install yum-utils
+
+$ sudo yum-config-manager --add-repo https://<repo-url>.repo
+
+$ sudo yum-config-manager --add-repo 192.168.1.220/BaseOS.repo
+
+To search
+$ sudo yum search 'web server'
+
+More information about a package
+$ sudo yum info nginx
+
+To install
+$ sudo yum install nginx
+
+$ sudo yum reinstall nginx
+
+$ sudo yum remove nginx
+
+To view groups of packages 
+$ sudo yum group list
+
+$ sudo yum group list --hidden
+
+To install a group
+$ sudo yum group install 'Server with GUI'
+
+To remove a group of packages
+$ sudo yum group remove 'Server with GUI'
+
+You can use yum to install downloaded rpm
+$ sudo yum install ./file_1.1_x68_64.rpm
+
+To remove package+dependencies
+$ sudo yum autoremove <package-name>
+
++ Update and upgrade packages
+To see what package can be upgraded
+
+$ sudo yum check-upgrade
+
+$ sudo yum update
+
+
+
+6.4 : Work with package module streams (AppStream)
+
+They allow to designate multiple versions of packages to group together as modules
+
+To see available modules
+$ sudo yum module list
+
+To get information about a particular module
+$ sudo yum module list nodejs
+
+yum will always download the package with the default module tag
+To get different version and profile
+$ sudo yum module install nodejs:14/development
+
+To take a look at which ones got installed
+$ sudo yum module list --installed nodejs
+
+To reset the module settings to the default
+$ sudo yum module reset nodejs
+
+

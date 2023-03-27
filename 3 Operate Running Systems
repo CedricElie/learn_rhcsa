@@ -1,0 +1,406 @@
+3: Operate Running Systems
+==========================
+
+3.1 : Boot, reboot and shutdown a system safely
+
+$ sudo systemctl reboot
+
+To shutdown
+
+$ sudo systemctl poweroff
+
+In cases where the system is stuck and does not want to close properly
+
+$ sudo systemctl reboot --force
+
+$ sudo systemctl poweroff --force
+
+Last resort
+
+$ sudo systemctl reboot --force --force
+
+$ sudo systemctl poweroff --force --force
+
+
+To schedule a shutdown, between 00:00 to 23:59 
+
+$ sudo shutdown 02:00
+
+To shutdown in the next 15min
+$ sudo shutdown +15 
+
+To reboot in the next 15min
+$ sudo shutdown -r 02:00
+
+$ shutdown -r +15
+
+To cancle a shutdown
+
+$ sudo shutdown -c
+
+Warn message to show to users before the machine is rebooted
+
+$ sudo shutdown -r +1 'scheduled restart to do an offline-backup of our database'
+
+
+3.2 : Boot or change system into different operating modes
+-----------------------------------------------
+
+Changing the default boot target
+
+To get the default bbot target
+$ systemctl get-default
+graphical.target
+
+To use the multi-user target
+$ sudo systemctl set-default multi-user.target
+
+
+To get to the previous target without rebooting (non persistent)
+$ sudo systemctl isolate graphical.target
+
+Emergency target:
+$ sudo systemctl isolate emergency.target
+
+Rescue target:
+$ sudo systemctl isolate rescue.target
+
+NB : You need to be root to isolate the rescue and emergency target
+
+
+3.3 :  Interrupt the boot process in order to gain access to a system
+-----------------------------------------------------
+
+During reboot pres 'e' 
+Check for the linux line and move to end after rhgb quiet...add
+ rd.break
+
+Enter Ctrl+X to save and let system reboot in emergency mode with root prompt
+
+The system takes to root file system and mounts it in read-only mode on /sysroot.
+To change the default mount mode from ro to rw
+# mount -o remount rw /sysroot
+
+Now you can chroot the /sysroot
+# cd /sysroot
+
+This makes /sysroot, root of the filesystem
+# chroot /sysroot
+
+Now we have a root login with a rw filesystem (full-privileges)
+To evade selinux policy violations, create the .autorelabel file on root filesystem
+
+# touch /.autorelabel
+
+Same process for RHEL 9
+------------------------
+
+During reboot pres 'e' 
+Move down to the linux line after
+ root=/dev/mapper/rhel-root ro crashkernel=16-46...
+ Change the ro to rw
+ root=/dev/mapper/rhel-root rw crashkernel=16-46...
+
+then go to the end of the line : init=/bin/bash
+Press Ctrl+x to load back
+
+You can go about changing the new root password
+# passwd root
+
+# touch /.autorelabel
+
+# exec /sbin/init  # This calls the init process to finish the rest of the boot process
+
+
+3.4 : Install, configure and troubleshoot bootloaders
+-----------------------------------------------------
+
+GRUB - Grand Unified bootloader
+
+Boot you OS, from a removeable media, CD or USB
+At boot menu, choose troubleshooting
+Then Rescue a CentOS Stream system
+
+Chose option 1) Continue
+Then press enter and next prompt, then you get shell
+# chroot /mnt/sysroot
+
+Now we need to generate a GRUB configuration file
+# grub2-mkconfig -o /boot/grub2/grub.cfg
+
+on a system that uses EFI
+
+# grub2-mkconfig -o /boot/efi/EFI/centos/grub.cfg
+
+Now we need to place grub at the first two sectors of the hard-disks
+To view all physical/virtual disks where /boot is installed
+# lsblk
+
+To install grub in the first two sectors of the hard-disks
+# grub2-install /dev/sda
+
+For a system booting through EFI, EFI does not boot on the first two sectores
+# dnf reinstall grub1-efi grub2-efi-modules shim
+
+# exit # To exit the chroot environment
+# exit # To exit the rescue environment and system reboots
+
+
+To modify grub configuration filesystem
+# vim /etc/default/grub
+GRUB_TIMEOUT and other variables can be modified
+
+We can regenerate the grub configuration file with the new changes
+$ sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+
+Using EFI mode
+$ sudo grub2-mkconfig -o /boot/efi/EFI/centos/grub.cfg
+
+$ sudo systemctl reboot
+
+
+3.5 : Diagnose and manage processes
+-----------------------------------
+
+ The default command to manage processes is the ps command
+Support linux style syntax or BSD style syntax
+
+$ ps -a
+$ ps aux
+
+$ top
+By default, top is going to reorder processes by CPU usage
+
+To monitor a specific process
+$ ps 1
+
+With extra details
+$ ps u 1
+
+To view processes launched by a user
+$ ps -U aaron
+
+To view in user oriented format
+$ ps u -U aaron
+
+To search for processes with a specific name
+$ pgrep -a syslog
+
+Process niceness, between -20 to +19, lower the number
+higher the proirity
+
+To set the nice value at process start
+$ nice -n 11 bash
+
+To turn the BSD long format output to get the nice values
+$ ps l   
+
+Processes inherit the niceness value of processes that launches them
+
+$ ps lax
+Gives all processes with some extended information on each of them
+
+To see which processes are parents of other processes
+$ ps fax
+
+To view CPU, MEM usage
+$ ps faux
+
+A regular user can only assign nice values between 0 and 19
+Only root can set nice under 0 (negative)
+
+$ nice -n -12 bash (persmission denied)
+$ sudo nice -n -12 bash
+
+verify its running :
+$ ps lax
+
+To modify niceness value of a process
+$ ps faux  | get the PID
+$ sudo renice 7 <PID>
+
+You can only renice a process once and a regular user
+
+SIGNALS:
+---------
+
+SIGSTOP and SIGKILL can not be ignored by any process
+To see a list of signals
+$ kill -L
+
+You can only send signals to processes that are owned by your user
+Only root can send signals to all processes
+
+To kill processes by name, first we identify them
+$ pgrep -a bash
+$ pkill -KILL bash
+
+NB: All processes identified by pgrep can be killed with pkill
+
+Backgrounding and foregrounding processes
+-----------------------------------------
+
+$ sleep 180
+This will make the terminal wait for 180sec
+
+Ctrl+C - Interrupt
+Ctrl+Z - background or paused program
+
+Resume to the backgrounded process using :
+$ fg
+
+If you want a program to do its work in the background
+$ sleep 300 &
+
+To check if you have any program in backgroup or pause
+$ jobs
+
+If we want our program to be back in foreground
+$ fg <job-number>
+
+Ctrl+Z can pause it and return back to the shell
+To make it resume
+$ bg  <job-number>
+
+To see what files and directories processes are using
+$ lsof -p  <pid>
+
+To explore some other processes
+$ sudo lsof -p <pid>
+
+To take a look processes that are currently using a path or directory
+$ sudo lsof /var/log/messages
+
+
+
+
+3.6: Locate and Analyze System Log Files
+-----------------------------------------
+
+Logging Daemons
+
+rsyslog = rocket fast system for log processing, it logs all in /var/log
+
+journalctl
+-----
+
+To know the path to a command
+$ which sudo
+	/bin/sudo
+
+To have specific logs on the /bin/sudo
+$ journalctl /bin/sudo
+
+If you know the name of a service, you can view all its logs with
+$ journalctl -u sshd.service
+
+when using journalctl 
+
+> : to go to the end of the less pager
+journalctl -e : to go to the end of the output at openning
+journalctl -f : To open the log in follow mode, Ctrl+C to quit
+
+proirity levels : alert, crit, debug, emerg, err, info, notice, warning
+$ journalctl -p err
+
+You can use grep expression to filter the ouput
+$ journalctl -p info -g '^b'
+
+To view logs, recorded after a certain time
+$ journalctl -S 02:00
+
+To see logs generated in a time interval
+$ journalctl -S 01:00 -U 02:00
+
+It also supports dates
+$ journalctl -S '2021-11-16 12:04:55'
+
+Logs of the current boot
+$ journalctl -b 0
+
+previous boot
+$ journalctl -b -1
+
+To make the journalctl save logs to the disk, you can create a special directory
+$ mkdir /var/log/journal
+
+To see who logged in
+$ last
+
+$ lastlog - when each user logged for the last time
+
+$ sudo journalctl --unit=sshd.service -n 20 --no-pager
+
+
+3.7: Manage tuning profiles
+---------------------------
+
+TuneD - Service that monitors a systems and optimizes the performance
+
+Power saving profiles
+performance-boosting profiles
+
+When installed, it automatically selects which profile is best for the running system
+Default profile is  : Balanced
+
+$ sudo yum install tuned
+
+$ sudo systemctl enable --now tuned
+
+$ systemctl status tuned.service
+
+To view the active profile
+$ tuned-adm active
+
+To verify the current settings match the tuned profile
+$ tuned-adm verify
+
+
+TuneD configuration custom files : /etc/tuned
+TuneD standard profiles : /usr/lib/tuned
+
+Custom profiles overwrite  standard profiles
+
+To manage the tuned : tuned-adm
+To list all available profiles that can be used on the current system
+$ tuned-adm list 
+
+To see which profile is active
+$ tuned-adm active
+
+To switch to a profile
+$ tuned-adm profile balanced
+
+$ tuned-adm profile_info
+
+$ tuned-adm recommend
+
+$ tuned-adm verify
+
+$ tuned-adm auto_profile
+
+$ tuned-adm profile_mode
+
+$ tuned-adm --help
+
+To swith to a profile
+$ sudo tuned-adm profile throughput-perfomance
+
+tuned can merge two profiles settings and combine it into one profile
+
+$ tuned-adm profile virtual-host powersave
+
+$ tuned-adm active - both profiles are applied
+
+
+Dynamic Tuning, can be enabled, to check the status
+$ grep "dynamic_tuning" /etc/tuned/tuned-main.conf
+dynamic_tunning = 0
+
+$ sudo vi /etc/tuned/tuned-main.conf
+dynamic_tunning = 0
+
+$ sudo systemctl restart tuned.service
+
+$ grep "dynamic_tuning" /etc/tuned/tuned-main.conf
+dynamic_tunning = 1

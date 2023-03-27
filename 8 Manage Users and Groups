@@ -1,0 +1,178 @@
+# 8.1 Create, delete and modify local user accounts
+
+```
+$ sudo useradd john
+```
+When the command is triggered :
+- a user is created with a userid
+- a group is created with the same uid and is made primary group
+- a home folder is created
+- a shell present at /bin/bash is assigned
+- files present at /etc/skell are copied to the home directory
+
+Default actions done when a new user is created can be found at:
+```
+$ useradd --defaults
+or
+$ useradd -D
+```
+
+To set a password
+```
+$ sudo passwd john
+```
+
+To delete an account
+```
+$ sudo userdel john
+```
+
+During user deletion, home directory can also be deleted
+```
+$ sudo userdel --remove john
+
+$ sudo useradd --shell /bin/othershell --home-dir /home/otherdir john
+
+$ sudo useradd -s /bin/othershell -d /home/otherdir john
+```
+
+You can specify a uid 
+```
+$ sudo useradd --uid 1100 smith
+```
+
+## Create a system account
+```
+$ sudo useradd --system sysacc
+```
+
+System accounts have __id < 1000__
+
+
+To modify user details after creation
+```
+$ sudo usermod --home /homeotherdir --move-home john
+
+$ sudo usermod -d /home/otherdir -m john
+```
+
+To change the username
+```
+$ sudo usermod --login jane john 
+or
+$ sudo usermod -l jane john
+```
+
+To change user shell
+```
+$ sudo usermod --shell /bin/othershell jane
+or
+$ sudo usermod -s /bin/othershell jane
+```
+
+To disable an account
+```
+$ sudo usermod --lock jane
+
+$ sudo usermod --unlock jane
+```
+
+Set date for account expiry
+```
+$ sudo usermod --expiredate 2021-12-10 jane 
+```
+
+To remove and expiration date
+```
+$ sudo usermod --expiredate "" jane
+```
+
+Password expiration
+```
+$ sudo chage --lastday 0 jane
+
+$ sudo chage -d 0 jane
+```
+
+unexpire the password
+```
+$ sudo chage --lastday -1 jane
+
+$ sudo chage -d -1 jane
+```
+
+To set expiry every 30 days
+```
+$ sudo chage --maxdays 30 jane
+
+$ sudo chage -M 30 jane
+```
+
+To set passwords that never expire
+```
+$ sudo chage --maxdays -1 jane
+
+$ sudo chage -M -1 jane
+```
+
+To see when the account password expires
+```
+$ sudo chage --list jane
+
+$ sudo chage -l jane
+```
+
+
+# 8.2 Local Groups and Group Memberships
+
+To view groups a user is assigned to
+```
+$ groups john
+```
+Each user can belong to one or more groups
+
+Primary group = login group
+```
+$ sudo useradd john
+
+$ sudo groupadd developers
+```
+Add user to a group
+```
+$ sudo gpasswd --add john developers
+$ sudo gpasswd --a john developers
+```
+To remove user from a group
+```
+$ sudo gpasswd --delete john developers
+$ sudo gpasswd -d john developers
+```
+Change users primary or login group
+```
+$ sudo usermod --gid developers john
+$ sudo usermod -g developers john
+
+usermod -g changes secondary group
+usermod -G changes primary group
+```
+To rename a group
+```
+$ sudo groupmod --new-name programmers developers
+$ sudo groupmod -n programmers developers
+
+To delete a group
+$ sudo groupdel programmers
+```
+
+
+# 8.3 Manage access to the root account
+
+
+
+# 8.4 Configure PAM
+
+PAM related files are found in : /etc/pam.d/
+
+
+
+

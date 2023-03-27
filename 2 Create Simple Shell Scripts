@@ -1,0 +1,123 @@
+2.1 : Use scripting to automate system maintenance 
+------------
+
+bash is a command interpreter
+Remove .sh to scripts if you want other programs to execute them
+
+#!/bin/bash   - shebang on first line
+
+sample.sh
+
+#!/bin/bash
+
+if test -f /tmp/archive.tar.gz;then
+    mv /tmp/archive.tar.gz /tmp/archive.tar.gz.OLD
+    tar acf /tmp/archive.tar.gz /etc/dnf
+else
+    tar acf /tmp/archive.tar.gz /etc/dnf
+fi
+
+
+--
+2.2 : Conditional Logic
+------------------------
+
+if [ $rocket_status = "failed"]
+then
+    rocker_debug $mission_name
+elif [ $rocket_Status = "success" ]
+then
+    echo "This is successful"
+else
+    echo "The state is not failed no success"
+fi
+
+Conditional Operators
+
+[ STRING1 = STRING2 ]
+
+= is only used to compare strings
+[ "abc" = "abc" ]
+
+!= is not equal
+[ "abc" != "abc" ]
+
+numbers equals
+[ 5 -eq 5 ]
+[ 5 -ne 5 ]
+[ 5 -gt 5 ]
+[ 5 -lt 5 ]
+
+Enhanced patterns
+
+[[ STRING1 = STRING2 ]]
+
+[[ "abcd" = *bc* ]]
+[[ "abc" = ab[cd] ]]
+[[ "abe"= "ab[cd]" ]]
+[[ "abc" > "bcd" ]]
+[[ "abc" < "bcd" ]]
+
+[COND1] && [COND2] - OR OPERATORS
+[[ COND1 && COND2 ]]
+
+[ COND1 ] || [ COND2]
+[[ COND1 || COND2 ]]
+
+
+[ -e FILE ] - if file exists
+[ -d FILE ] - if directory exist
+[ -s FILE ] - if file exist and size > 0
+[ -x FILE ] - if the file is executable
+[ -w FILE ] - if the file is writeable
+
+
+2.3 : Processing shell exit codes
+----------------------------------
+
+EXIT STATUS = 0 --> SUCCESS
+EXIT STATUS > 0 --> FAILURE
+
+$? stores the exit status
+
+
+
+2.4: Loops
+-----------
+
+for loop: 
+
+for mission in <list of missions>
+do
+    create-and-launch-rocket lunar_mission
+done  
+
+
+for mission in 'cat mission.txt'
+do
+    create_and_launch_rocket $mission
+done
+
+
+
+while loop :
+
+while [ $rocket_status = "launching" ]
+do
+    sleep 2
+    rocket_status=rocket-status $mission_name
+
+done
+
+
+
+2.5: Process script inputs
+--------------------------
+
+$1, $2
+
+#!/bin/bash
+read -p "Enter a mission name:" mission_name
+
+#!/bin/bash
+mission_name=$1

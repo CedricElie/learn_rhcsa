@@ -1,0 +1,768 @@
+RHCSA Notes
+===========
+
+
+1 - Understand and Use Essential Tools
+
+1.1 : Access a shell prompt and issue commands with correct syntax
+
+Connection modes:
+    local text mode
+    Local graphcal mode
+    remote text mode
+    graphical mode
+
+ssh aaron@192.168.0.17
+
+
+1.2 : Log in and switch users in multiuser targets
+-------------------------------------------
+
+Linux Security :
+    Access Controls
+    PAM
+    Network Security
+    SSH Hardening
+    SELinux
+    Many More
+
+Linux Accounts
+    User Accounts (/etc/passwd)
+    Group Accounts(/etc/group)
+
+Account Types
+    User Accounts
+    Superuser Account (UID=0)
+    System Accounts (UID<100 OR between 500 - 1000)
+    Service Accounts
+
+#NB, users can have multiple group IDs. 
+
+$ id
+This command gives information about the user
+
+$ who
+To see the list of users currently logged in 
+
+$ last
+Record of all logged in users, and date+time of reboots
+
+
+Switching Users
+
+$ su - 
+To switch user
+
+SUDO
+/etc/sudoers
+Defines the default configuration and policies applied by the sudo command. This file can only be edited using the visudo command
+
+Only users listed in the /etc/sudoers file can use the sudo command for privilege escalation.
+
+
+Sudoer file structure:
+1 User or Group - bob %sudo(group)
+2 Hosts         - localhost, ALL(default)
+3 User          - ALL(default)
+4 commands      - /bin/ls, ALL(unrestricted)
+
+
+1.3 : Read, and use system documentation
+-----------------------------------------
+
+--help
+
+$ ls --help
+
+All commands have a manual, that can be accessed using the man command.
+
+$ man man
+    1 - Executatble programs or shell commands
+    2 - System calls
+    3 - Library calls
+    4 - Special files
+    5 - File formats and conventions
+    6 - Games
+    7 - Miscelleneous
+    8 - SYstem administration command
+    9 - Kernel routines
+
+-- $ apropos
+    Lets you search through man pages
+
+$ apropose director
+All man pages which have director in their man pages
+
+NB : sudo mandb
+Launch this command on new machines to initialize the apropos db
+
+$ apropos -s 1,8 director
+To filter out man page sections
+
+
+1.4 : Locate, read and user system documentation
+-----------------------------------
+
+$ info bash
+ Documentation about shell commands, in a pager formats.
+ Formated in a hypertext format.
+
+
+ - /user/share/doc
+ Documentation directory in html format
+
+
+
+1.5 : Create, delete, copy and move files and directories
+----------------------------------------------
+
+$ ls
+
+$ ls -l
+Long listing format
+
+$ ls -lh
+File sizes in human readable format
+
+
+Filesystem Tree
+
+/
+|
+/home
+ | /home/aaron
+          | Documents
+              | Invoice.pdf
+ | /home/jane
+/var
+ | /var/log
+
+
+$ pwd
+Print Working Directory
+
+$ cd
+change directory
+
+$ cd /
+Go to root directory
+
+$ cd -
+Go to previous directory
+
+$ cd
+Takes you back to your home directory 
+
+1.6 : Create and manage hard links
+----------------------------------
+
+$ stat
+Gives you detailed information about some files
+
+File -> Inodes -> Blocks on the data drive
+
+Links : It is the number of hard links to the file.
+
+$ ln path_to_target_file path_to_link_file
+
+$ ln /home/aaron/Pictures/family_dog.jpg /home/jane/Pictures/family_dog.jpg
+
+
+Hard links to a file can be deleted, so far as the file has one hard link regerencing it, else it would be erased
+
+You can only hard links to files not to the directories
+
+
+1.7 : Create and manage soft links
+----------------------------------
+
+$ ln -s path_to_target_file path_to_link_file
+
+$ sls -l /home/aaron/Pictures/family_do.jpg family_dog.jpg
+
+$ ln -l
+
+$ readlink family_dog_shortcut.jpg
+Gives you detailed information of where the link file points to. Changing the softlink name, breaks the kingk
+
+
+
+1.8 : List, set and change standard permissions
+---------------------------------------------
+
+$ chgrp group_name file/directory
+
+$ chgrp wheel family_dog.jpg
+
+To see what groups our user belongs to
+
+$ groups
+
+To change the user owner of a file or directory
+
+$ sudo chown user file/directory
+only root user can change the user owner
+
+
+$ sudo chown aaron:family family_dog.jpg
+
+Item identifier when issuing the ls -l command
+
+Directory  d
+Regular file  -
+Character device  c
+link  l
+secret file  s
+pipe  p
+block device  b
+
+For directories, we need
+r - to read inside the directory
+w - to create something inside the directory
+x - to move into the directory
+
+
+To change permissions we use the chmod command
+$ chmod permissions file/directory
+
+$ chmod u+w family_dog.jpg
+
+To remove permissions
+
+$ chmod o-r family_dog.jpg
+
+To set the permissions exactly 
+
+$ chmod g-r family_dog.jpg
+
+
+1.9 : SUID, SGID and sticky bit
+-------------------------------
+
+
+* Set User Identification Bit (SUID) : When ever the file is executed,
+it is executed with the user id of the owner of the file and not the person running the files
+
+$ chmod 4664 suidfile
+the execute bit for the user is replaced by S
+-rwSrw-r--
+
+if the user already has execute permission S is replaced with suidfile
+$ chmod 4764 suidfile
+-rwsrw-r--
+
+
+* Set Group ID (SGID) : 
+
+$ chmod 2664 sgidfile
+-rw-rwSr--
+
+Find users with the suid or sgid permission
+
+$ find . -perm /4000  # suidfile
+
+$ find . -perm /2000  # sgidfile
+
+
+* Sticky bit
+
+Set on directories that are shared with people. 
+Allows a file that are shared, only the owner can delete the files
+
+$ chmod +t stickydir
+$ chmod 1777 stickydir
+drwxrwxrwt
+
+it you remove the execute bit
+$ chmod 1666 sticky
+drw-rw-rwT
+
+
+
+1.10 : Search for files
+------------------------
+$  find [/path/to/directory] [search_parameters]
+
+Find all image files in a website
+
+$ find /usr/share/ -name '*.jpg'
+
+search large files greater than 10MB
+
+$ find /lib64/ -size +10MB
+
+Files changed in less than a 
+$ find /dev/ -mmin -1
+
+$ find -mtime 2         # 24-hour periods
+
+Modification means, creation or editing a file
+
+Modified Time != Change Time
+
+Change Time = Meta data about the data
+
+$ find -cmin -5
+
+
+File sizes :
+
+c bytes
+k kilobytes
+M megabytes
+G gigabytes
+
+$ find -size 512k
+
+Expressions in search expression 
+
+$ find -name "f*"
+
+$ find -size 512k
+
+$ find -name "f*" -size 512k      # AND operator
+
+$ find -name "f*" -o -size 512k   # OR operator
+
+$ find -not -name "f*"            # NOT operator
+
+$ find \! -name "f*"              # NOT operator
+
+
+Search Files based on permissions :
+
+$ find -perm 664
+
+$ find -perm -664  # Find files with at least 664 permissions
+
+$ find -perm /664  # Find files with any of these permissions
+
+$ find -perm u=rw,g=rw,o=r # Find files with exactly 664 permissions
+
+
+$ find -perm 600
+
+$ find -perm -100               #Execute Only permission
+
+$ find \! -perm -o=r
+
+$ find -perm /u=r,g=r,o=r
+
+
+find /var/log/ -perm -g=w ! -perm /o=rw > /home/bob/data.txt 
+Group can write, but others cannot read or write
+
+
+1.11 : Compare and manipulate file content
+-------------------------------------------
+
+
+$ tac 
+$ cat
+
+$ tail , by default gives you the last 10 lines
+
+$ head , view the first 10 lines
+
+> Transforming Test: Sed
+
+Used for search and replace
+
+$ sed 's/canda/canada/g' userinfo.txt
+
+$ sed -i 's/canda/canada/g' userinfo.text
+-i inplace, to save the changes
+
+> Extracting columns : cut
+
+$ cut -d ' ' -f 1 userinfo.txt
+
+
+> Uniqe and sort
+
+uniq commands removes adjancent repeated lines.
+Usually, you need to sort before uniq
+
+$ sort countries.txt | uniq
+
+
+> Comparing Files : diff
+
+diff file1 file2
+
+Identical lines are not shown. 
+Using context:
+
+$ diff -c file1 file2
+
+
+$ diff -y file1 file2
+Side by side comparson
+
+$ sdiff file1 file2
+Side by side diff
+
+
+1.12 : Pagers and vi demo
+-------------------------
+
+
+:/This\c - case sensitive search
+:yy - copy
+:p  - paste
+:dd - cut
+
+
+1.13 : Search using grep
+-------------------------
+
+$ grep 'CentOS' /etc/os-release
+$ grep -i 'CentOS' /etc/os-release  - -i ignore case
+
+Search all files under a directory or subdirectory
+
+$ grep -r 'CentOS' /etc/
+$ grep -ri 'CentOS' /etc/
+
+Invert Search results
+
+$ grep -vi 'centos' /etc/os-release
+
+To match only words
+
+$ grep -wi 'red' /etc/os-release
+
+To show only matching options
+$ grep -oi 'centos' /etc/os-release
+
+
+1.14 : Analyzing text With Regular Expressions
+--------------------------------------------------
+
+Regex Operators
+^ $ . * + {} ? | [] () [^]
+
+$ cat names.txt
+adam
+adnan
+basam
+samad
+samuel
+sheela
+ravi
+mausami
+
+Names that start with sam, not with same within
+$ grep '^sam' names.txt
+
+Names that end with sam
+$ grep 'sam$' names.txt
+
+List lines that end with number 7
+$ grep '7$' /etc/login.defs
+
+Match any ONE character
+$ grep -r 'c.t' /etc/
+
+Match whole words, with one character as any
+$ grep -rw 'c.t' /etc/
+
+Escaping For Special Characters
+$ grep '\.' /etc/login.defs
+
+Match The Previous Element 0 or More Times
+let* == letttt
+
+$ grep -r 'let*' /etc/
+$ grep -r '/.*/' /etc/
+
+All sequences of caracters where 0 appears one or more times
+0+ == 000
+$ grep -r '0\+' /etc/
+Since + is an operator, we use \ - back slash
+
+1.15 : Extended Regular Expressions
+-----------------------------------
+We user -E not to backslash the regex operator +
+All sequences of caracters where 0 appears one or more times
+
+$ grep -Er '0+' /etc/
+$ egrep -r '0+' /etc/
+
+{}: Previous Element Can Exist "this many" Times
+0{min,max}
+
+This will match strings with 3,4 or 5 0s
+$ egrep -r '0{3,5}' /etc/
+
+This will match three 0s at least
+$ egrep -r '0{3,}' /etc/
+
+To find all string that contains a 1, then at most three 0s
+$ egrep -r '10{,3}' /etc/
+
+To find all string that contain exactly 3 0s
+$ egrep -r '0{3}' /etc/
+
+?: Make The previous element optional
+$ egrep -r 'disabled?' /etc/
+
+|: Match One Thing Or The Other
+$ egrep -r 'enabled?|disabled?' /etc/
+
+[]: Ranges Or Sets
+[a-z][0-9]
+
+This will match cat or cut
+$ egrep -r 'c[au]t' /etc/
+
+To find drive letters in /etc
+$ egrep -r '/dev/[a-z]*[0-9]?' /etc/
+
+
+() : Subexpressions
+
+$ egrep -r '/dev/(([a-z]|[A-Z])*[0-9]?)*' /etc/
+
+
+[^] : Negated Ranges Or Sets
+
+To make sur http is not followed by letter s
+$ egrep -r 'http[^s]' /etc/
+
+No lower-case caracter after the slash
+$ egrep -r '/[^a-z]' /etc/
+
+
+1.16 : Archive, backup, compress, unpack and uncompress files
+--------------------------------------------------------------
+
+1. Archive
+2. Compress
+3. Backup
+
+tar = tape archive
+
+To display the content of an archive
+$ tar --list --file archive.tar
+
+$ tar -tf archive.tar
+
+$ tar tf archive.tar
+
+Tar commands:
+$ tar --create --file archive.tar file1
+$ tar cf archive.tar file1
+
+To add a file to the archive:
+$ tar --append --file archive.tar file2
+$ tar rf archive.tar file2
+
+To add a directory:
+$ tar --create --file archive.tar Pictures/
+
+To extract the files:
+$ tar --extract --file archive.tar 
+$ tar xf archive.tar
+
+To  extract to another directory:
+$ tar --extract --file archive.tar --directory /tmp/
+$ tar xf archive.tar -C /tmp/
+
+File archives also stores permissions and ownership information
+
+
+
+
+1.17: Compress and Uncompress files
+-----------------------------------
+
+gzip, bzip2, xz
+
+$ gzip file1
+$ bzip2 file2
+$ xz file3
+
+#All these commands compress the file and deletes the original
+
+To uncompress:
+$ gunzip file1.gz       gzip --decompress file1.gz
+$ bunzip file2.bz2      bzip2 --decompress file2.bz2
+$ unxz file3.xz         xz --decompress file3.xz
+
+To keep original files untoched after compression
+
+$ gzip --keep file1
+$ bzip2 --keep file2
+$ xz --keep file3
+
+
+
+$ zip archive file1
+
+$ zip -r archive.zip Pictures/
+
+$ unzip archive.zip
+
+Generating a tar archives
+
+$ tar --create --gzip --file archive.tar.gz file2
+
+$ tar --create --bzip2 --file archive.tar.bz2 file2
+
+$ tar --create --xz --file archive.tar.xz file2
+
+Autop Compress
+
+$ tar --create --autocompress --file archive.tar.gz
+
+
+1.18: Archive, compress, unpack and uncompress files using star
+-----------------
+
+SYNTAX:
+$ star -options file=/path_to_archive.star files
+
+$ star -cv file=/home/aaron/archive2.star file1
+
+TO LIST THE CONTENT:
+$ star -tv file=/home/aaron/archive2.star
+
+TO EXTRACT:
+$ star -xv file=/home/aaron/archive2.star
+
+TO EXTRACT TO A DIFFERENT DIRECTORY:
+$ star -xv file=/home/aaron/archive2.star -C /tmp/
+
+TO ARCHIVE AND COMPRESS FILES
+$ star -cv -z file=/home/aaron/archive2.star.gz file1
+
+$ star -cv -bz file=/home/aaron/archive2.star.bz2 file1
+
+To unpack : Same options for different compression types. Star automatically detects the compression format
+
+$ star -xv file=/home/aaron/archive2.star.gz
+
+
+1.19: Use input-output redirection
+-----------------------------------
+
+stdin  <
+stdout 1>
+stderr 2>
+
+$ grep -r '^The' /etc/ > 2> /dev/null
+
+Redirecting both output and errors in one comman
+$ grep -r '^The' /etc/ 1>output.txt 2>errors.txt
+
+$ grep -r '^The' /etc/ 1>>output.txt 2>>errors.txt
+
+Recirecting both output and errors in same file
+$ grep -r '^The' /etc/ > all_output.txt 2>&1
+or
+$ grep -r '^The' /etc/ 1>all_output 2>&1 
+
+
+Redirecting Input
+
+$ sendemail someon@example.com < emailcontent.txt
+
+Heredoc and Here String
+
+$ sort <<\'EOF''
+>6
+>3
+>2
+>5
+>1
+>4
+>EOF
+>1
+>2
+>3
+>4
+>5
+>6
+
+$ bc <<<1+2+3+4
+
+Pipiing :
+
+$ grep -v '^#' /etc/login.defs | sort | column -t
+column -t is used to align output into columns
+
+1.20 : Backing files to a Remote System
+----------------------------------------
+
+Syntax:
+$ rsync <options> local_dir user@host:/remote_dir
+
+$ rsync -a Pictures/ aaron@9.9.9.9:/home/aaron/Pictures
+
+Always have a slash at the end of directory names
+
+You can synch both local and/or remote directories
+
+Disk Imaging:
+
+$ sudo dd if=/dev/vda of=diskimage.raw bs=1M status=progress
+First unmount drive before using dd
+
+If you want to restore a disk image from a file
+$ sudo dd if=diskimage.raw of=/dev/vda bs=1M status=progress
+
+
+
+1.21: Securely transfer files between systems
+----------------------------------------------
+
+$ scp aaron@192.168.1.27:/home/aaron/myfile.tgz /home/aaron/myfile.tgz
+
+$ scp /home/aaron/my_archive.tar aaron@192.168.1.27:/home/aaron/my_archive.tar
+
+From remote machine to remote machine
+
+$ scp aaron@192.168.1.27:/home/aaron/familyphoto.jpg aaron@192.168.1.59:/home/aaron/familyphoto.jpg
+
+
+
+sftp
+
+$ sftp aaron@192.168.1.27
+
+$ sftp> help == $ sftp> ?
+
+Copy remote file to local machine
+
+$ sftp> get familypicture.jpg
+
+$ sftp> get -r Pictures
+
+Copy local files to remote machine
+$ sftp> put myarchive.tgz
+
+$ sftp> put -r my_photos/
+
+$ sftp> bye
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
