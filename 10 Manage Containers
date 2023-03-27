@@ -121,11 +121,21 @@ $ cd ~/.config/systemd/user
 $ podman generate systemd --name container_service --files --new 
 This command will generate a service file container-(name).service
 
-Kill the currently running container
+Kill and remove the currently running container
 $ podman kill container_service
-
+and
 $ podman rm container_service
 
+Enable a loggin setting for the user
+$ loginctl enable-linger
+$ systemctl --user daemon-reload
+$ systemctl --user enable --now container-(name).service
 
+-- PRACTICE
+
+loginctl enable-linger bob
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
+systemctl --user daemon-reload
+systemctl --user enable container-kodekloud.service --now
 
 
